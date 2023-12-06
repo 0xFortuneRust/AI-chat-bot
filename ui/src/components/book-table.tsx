@@ -1,36 +1,36 @@
-import { List } from "@mui/material";
-import { FC } from "react";
+import { FC, useState } from "react";
 import { Book } from "../types/book";
-import { BookRow } from "./book-row";
-import { DataGrid, GridColDef, GridValueGetterParams } from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridFilterModel } from "@mui/x-data-grid";
 
 export const BookTable: FC = () => {
+  const [filterModel, setFilterModel] = useState<GridFilterModel>();
+
   const books: Book[] = [
     {
-      title: "string",
-      author: "string",
-      genre: "string",
-      length: 0,
+      title: "Dune",
+      author: "Frank Herbert",
+      genre: "Science-Fiction",
+      length: 100,
       read: true,
       id: 0,
       date_added: "2023-12-04T03:28:26.646Z",
     },
     {
-      title: "string",
-      author: "string",
-      genre: "string",
-      length: 0,
+      title: "Chaos Walking",
+      author: "Unknwoen",
+      genre: "Adventure",
+      length: 100,
       read: true,
-      id: 0,
+      id: 1,
       date_added: "2023-12-04T03:28:26.646Z",
     },
     {
-      title: "string",
-      author: "string",
-      genre: "string",
-      length: 0,
+      title: "Bone",
+      author: "Unkown",
+      genre: "Adevnture",
+      length: 300,
       read: true,
-      id: 0,
+      id: 2,
       date_added: "2023-12-04T03:28:26.646Z",
     },
   ];
@@ -74,6 +74,10 @@ export const BookTable: FC = () => {
     },
   ];
 
+  const handleFilterModelChange = (model: GridFilterModel) => {
+    setFilterModel(model);
+  };
+
   return (
     <div style={{ height: 400, width: "100%" }}>
       <DataGrid
@@ -83,6 +87,8 @@ export const BookTable: FC = () => {
         rowsPerPageOptions={[5, 10, 20]}
         checkboxSelection
         disableSelectionOnClick
+        filterModel={filterModel}
+        onFilterModelChange={handleFilterModelChange}
       />
     </div>
   );
