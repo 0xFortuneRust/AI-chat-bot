@@ -1,5 +1,6 @@
 import { Box } from "@mui/material";
 import { BookInput } from "./book-input";
+import { BookTable } from "./book-table";
 
 export const BookWrapper = () => {
   return (
@@ -10,6 +11,7 @@ export const BookWrapper = () => {
       }}
     >
       <BookInput />
+      <BookTable />
     </Box>
   );
 };
