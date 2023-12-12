@@ -1,39 +1,43 @@
-import { FC, useState } from "react";
+import { FC, useEffect, useState } from "react";
 import { Book } from "../types/book";
 import { DataGrid, GridColDef, GridFilterModel } from "@mui/x-data-grid";
+import { Checkbox, IconButton } from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
 
-export const BookTable: FC = () => {
+interface BookTableProps {
+  books: Book[];
+  setBooks: React.Dispatch<React.SetStateAction<Book[]>>;
+}
+
+export const BookTable: FC<BookTableProps> = ({ books, setBooks }) => {
   const [filterModel, setFilterModel] = useState<GridFilterModel>();
 
-  const books: Book[] = [
-    {
-      title: "Dune",
-      author: "Frank Herbert",
-      genre: "Science-Fiction",
-      length: 100,
-      read: true,
-      id: 0,
-      date_added: "2023-12-04T03:28:26.646Z",
-    },
-    {
-      title: "Chaos Walking",
-      author: "Unknwoen",
-      genre: "Adventure",
-      length: 100,
-      read: true,
-      id: 1,
-      date_added: "2023-12-04T03:28:26.646Z",
-    },
-    {
-      title: "Bone",
-      author: "Unkown",
-      genre: "Adevnture",
-      length: 300,
-      read: true,
-      id: 2,
-      date_added: "2023-12-04T03:28:26.646Z",
-    },
-  ];
+  useEffect(() => {
+    // Fetch data from the backend when the component mounts
+    fetchBooks();
+  }, []);
+
+  const fetchBooks = async () => {
+    try {
+      const response = await fetch("http://localhost:8000/books");
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setBooks(data);
+    } catch (error) {
+      console.error("Error fetching books:", error);
+    }
+  };
+
+  const handleDelete = (id: number) => {
+    console.log(`Delete book with id: ${id}`);
+  };
+
+  const handleFilterModelChange = (model: GridFilterModel) => {
+    setFilterModel(model);
+  };
 
   const rows = books.map((book) => ({
     id: book.id,
@@ -41,6 +45,8 @@ export const BookTable: FC = () => {
     author: book.author,
     genre: book.genre,
     length: book.length,
+    read: book.read,
+    date: book.date_added,
   }));
 
   const columns: GridColDef[] = [
@@ -62,31 +68,51 @@ export const BookTable: FC = () => {
       field: "genre",
       headerName: "Genre",
       type: "string",
-      width: 110,
+      width: 130,
       editable: true,
     },
     {
       field: "length",
       headerName: "Length",
-      type: "number",
+      type: "string",
       width: 110,
       editable: true,
     },
+    {
+      field: "date",
+      headerName: "Date Added",
+      type: "string",
+      width: 110,
+      editable: true,
+    },
+    {
+      field: "read",
+      headerName: "Read",
+      type: "bool",
+      width: 70,
+      renderCell: (params) => <Checkbox checked={params.value as boolean} />,
+    },
+    {
+      field: "delete",
+      headerName: "Delete",
+      type: "bool",
+      width: 70,
+      renderCell: (params) => (
+        <IconButton
+          color="secondary"
+          onClick={() => handleDelete(params.id as number)}
+        >
+          <DeleteIcon />
+        </IconButton>
+      ),
+    },
   ];
-
-  const handleFilterModelChange = (model: GridFilterModel) => {
-    setFilterModel(model);
-  };
 
   return (
     <div style={{ height: 400, width: "100%" }}>
       <DataGrid
         rows={rows}
         columns={columns}
-        pageSize={5}
-        rowsPerPageOptions={[5, 10, 20]}
-        checkboxSelection
-        disableSelectionOnClick
         filterModel={filterModel}
         onFilterModelChange={handleFilterModelChange}
       />
