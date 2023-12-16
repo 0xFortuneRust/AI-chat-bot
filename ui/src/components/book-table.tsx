@@ -36,26 +36,27 @@ export const BookTable: FC<BookTableProps> = ({ books, setBooks }) => {
   };
 
   const handleReadToggle = async (id: number, newBook: Book) => {
+    newBook.read = !newBook.read;
+    console.log(newBook);
     try {
       const response = await fetch("http://localhost:8000/books/update", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          id,
-        }),
+        body: JSON.stringify(newBook),
       });
 
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
-
-      // Update the state with the new read status
-      const updatedBooks = books.map((book) =>
-        book.id === newBook.id ? { ...book, read: !newBook.read } : book
-      );
-      setBooks(updatedBooks);
+      setBooks((previous) => {
+        const result = previous.map((book) =>
+          book.id === newBook.id ? { ...book, read: newBook.read } : book
+        );
+        console.log(result);
+        return result;
+      });
 
       console.log(`Updated read status for book with id ${newBook.id}`);
     } catch (error) {
