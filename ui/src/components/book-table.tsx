@@ -31,12 +31,59 @@ export const BookTable: FC<BookTableProps> = ({ books, setBooks }) => {
     }
   };
 
-  const handleDelete = (id: number) => {
-    console.log(`Delete book with id: ${id}`);
-  };
-
   const handleFilterModelChange = (model: GridFilterModel) => {
     setFilterModel(model);
+  };
+
+  const handleReadToggle = async (id: number, newBook: Book) => {
+    try {
+      const response = await fetch("http://localhost:8000/books/update", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      // Update the state with the new read status
+      const updatedBooks = books.map((book) =>
+        book.id === newBook.id ? { ...book, read: !newBook.read } : book
+      );
+      setBooks(updatedBooks);
+
+      console.log(`Updated read status for book with id ${newBook.id}`);
+    } catch (error) {
+      console.error(
+        `Error updating read status for book with id ${newBook.id}:`,
+        error
+      );
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      const response = await fetch(`http://localhost:8000/books/delete/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      // Remove the deleted book from the state
+      const updatedBooks = books.filter((book) => book.id !== id);
+      setBooks(updatedBooks);
+
+      console.log(`Deleted book with id: ${id}`);
+    } catch (error) {
+      console.error(`Error deleting book with id ${id}:`, error);
+    }
   };
 
   const rows = books.map((book) => ({
@@ -90,7 +137,16 @@ export const BookTable: FC<BookTableProps> = ({ books, setBooks }) => {
       headerName: "Read",
       type: "bool",
       width: 70,
-      renderCell: (params) => <Checkbox checked={params.value as boolean} />,
+      renderCell: (params) => (
+        <Checkbox
+          checked={params.value as boolean}
+          onChange={() => {
+            // handleReadToggle(params.id as number, !params.value as boolean)
+            const book = params.row as Book;
+            handleReadToggle(params.id as number, book);
+          }}
+        />
+      ),
     },
     {
       field: "delete",
