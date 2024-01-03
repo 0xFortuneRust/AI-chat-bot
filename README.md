@@ -57,3 +57,13 @@ docker build -t books-to-read-ui .
 ```bash
 docker run -p 3000:3000 books-to-read-ui
 ```
+
+#### What the UI Docker container executes:
+
+```bash
+npm run dev
+```
+
+# Picture Example
+
+![Example Image](docs/TableExample.png)
