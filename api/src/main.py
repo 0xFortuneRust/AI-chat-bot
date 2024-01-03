@@ -26,6 +26,10 @@ def get_db():
     finally:
         db.close()
 
+@app.get("/books/{id}", response_model=List[schemas.Book])
+def get_book(id: int, db: Session = Depends(get_db)):
+    return crud.get_book(db=db, id=id)
+
 @app.get("/books", response_model=List[schemas.Book])
 def get_books(db: Session = Depends(get_db)):
     return crud.get_books(db=db)

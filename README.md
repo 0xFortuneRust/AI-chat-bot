@@ -20,6 +20,9 @@ docker build -t books-to-read-api .
 
 ```bash
 docker run -v /Users/kylee/Documents/Code/books-to-read/api/src:/src -p 8000:8000 books-to-read-api
+```
+
+```bash
 docker run -v D:\Users\Heather\Documents\Kylee\books-to-read\api\src:/src -p 8000:8000 books-to-read-api
 ```
 

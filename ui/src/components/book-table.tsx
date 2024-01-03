@@ -1,5 +1,4 @@
-import * as React from "react";
-import { Book } from "../types/book";
+import { Book, BookCreate } from "../types/book";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import AddIcon from "@mui/icons-material/Add";
@@ -13,21 +12,31 @@ import {
   GridToolbarContainer,
   GridActionsCellItem,
   GridRowEditStopReasons,
+  GridRowsProp,
+  GridRowModesModel,
+  GridEventListener,
+  GridRowId,
+  GridCellParams,
 } from "@mui/x-data-grid";
 import { randomId } from "@mui/x-data-grid-generator";
 import { FC, useEffect, useState } from "react";
+import { areBooksEqual } from "../utils/object-equality";
+import { Checkbox } from "@mui/material";
 
-interface BookTableProps {
-  books: Book[];
-  setBooks: React.Dispatch<React.SetStateAction<Book[]>>;
+interface EditToolbarProps {
+  setRows: (newRows: (oldRows: GridRowsProp) => GridRowsProp) => void;
+  setRowModesModel: (
+    newModel: (oldModel: GridRowModesModel) => GridRowModesModel
+  ) => void;
 }
 
-function EditToolbar(props) {
+function EditToolbar(props: EditToolbarProps) {
   const { setRows, setRowModesModel } = props;
 
-  const handleClick = () => {
+  const handleNewBookClick = () => {
+    // Create temporary ID and set Read to false by default
     const id = randomId();
-    setRows((oldRows) => [...oldRows, { id, name: "", age: "", isNew: true }]);
+    setRows((oldRows) => [...oldRows, { id, isNew: true, read: false }]);
     setRowModesModel((oldModel) => ({
       ...oldModel,
       [id]: { mode: GridRowModes.Edit, fieldToFocus: "name" },
@@ -36,23 +45,20 @@ function EditToolbar(props) {
 
   return (
     <GridToolbarContainer>
-      <Button color="primary" startIcon={<AddIcon />} onClick={handleClick}>
+      <Button
+        color="primary"
+        startIcon={<AddIcon />}
+        onClick={handleNewBookClick}
+      >
         Add book
       </Button>
     </GridToolbarContainer>
   );
 }
 
-export const BookTable: FC<BookTableProps> = ({ books, setBooks }) => {
-  const [rows, setRows] = React.useState<Book[]>([]);
-  const [rowModesModel, setRowModesModel] = React.useState({});
-  const [formData, setFormData] = useState({
-    title: "",
-    author: "",
-    genre: "",
-    length: 0,
-    read: false,
-  });
+export const BookTable: FC = () => {
+  const [rows, setRows] = useState<Book[]>([]);
+  const [rowModesModel, setRowModesModel] = useState<GridRowModesModel>({});
 
   useEffect(() => {
     // Fetch data from the backend when the component mounts
@@ -67,168 +73,184 @@ export const BookTable: FC<BookTableProps> = ({ books, setBooks }) => {
       }
 
       const data = await response.json();
+
+      // Update the rows state variable with the fetched data
       setRows(data);
     } catch (error) {
       console.error("Error fetching books:", error);
     }
   };
 
-  const handleRowEditStop = (params, event) => {
+  const handleRowEditStop: GridEventListener<"rowEditStop"> = (
+    params,
+    event
+  ) => {
     if (params.reason === GridRowEditStopReasons.rowFocusOut) {
       event.defaultMuiPrevented = true;
     }
   };
 
-  const handleEditClick = (id) => () => {
+  const handleEditClick = (id: GridRowId) => () => {
     setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.Edit } });
   };
 
-  const handleSaveClick = (id) => async () => {
+  const handleSaveClick = (id: GridRowId) => async () => {
     setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.View } });
-
-    // try {
-    //   // Get the edited row
-    //   const editedRow = rows.find((row) => row.id === id);
-    //   console.log(editedRow);
-    //   // Get the values in the cells of the row
-    //   const newBook = {};
-
-    //   // If the row is marked as new, it means it's an added book
-    //   if (editedRow.isNew) {
-    //     // Submit the form data for the new book
-    //     await fetch("http://localhost:8000/books/new", {
-    //       method: "POST",
-    //       headers: {
-    //         "Content-Type": "application/json",
-    //       },
-    //       body: JSON.stringify(editedRow),
-    //     });
-
-    //     // Fetch the updated book list from the back-end and update the books state variable
-    //     const booksResponse = await fetch("http://localhost:8000/books");
-    //     if (!booksResponse.ok) {
-    //       throw new Error(`HTTP error! Status: ${booksResponse.status}`);
-    //     }
-    //     const updatedBooks = await booksResponse.json();
-    //     setBooks(updatedBooks);
-    //   }
-
-    //   // Reset the form after successful submission
-    //   setFormData({
-    //     title: "",
-    //     author: "",
-    //     genre: "",
-    //     length: 0,
-    //     read: false,
-    //   });
-    // } catch (error) {
-    //   console.error("Error creating book:", error);
-    // }
   };
 
-  const handleDeleteClick = (id) => () => {
-    setRows(rows.filter((row) => row.id !== id));
-
+  const handleDeleteClick = (id: GridRowId) => async () => {
     // Make API request to delete
+    try {
+      const response = await fetch(`http://localhost:8000/books/delete/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      console.log(`Deleted book with id: ${id}`);
+    } catch (error) {
+      console.error(`Error deleting book with id ${id}:`, error);
+    }
+
+    // Update rows state variable to disclude the deleted book
+    setRows(rows.filter((row) => row.id !== id));
   };
 
-  const handleCancelClick = (id) => () => {
+  const handleCancelClick = (id: GridRowId) => () => {
     setRowModesModel({
       ...rowModesModel,
       [id]: { mode: GridRowModes.View, ignoreModifications: true },
     });
 
     const editedRow = rows.find((row) => row.id === id);
-    if (editedRow.isNew) {
+    if (editedRow?.isNew) {
       setRows(rows.filter((row) => row.id !== id));
     }
   };
 
-  const processRowUpdate = async (newRow) => {
-    const updatedRow = { ...newRow, isNew: false };
-    setRows(rows.map((row) => (row.id === newRow.id ? updatedRow : row)));
+  const processRowUpdate = async (newRow: Book) => {
+    const currentRow = rows.find((book) => book.id === newRow.id);
 
-    // Make API request to update
-    try {
-      // If the row is marked as new, it means it's an added book
-      if (newRow.isNew) {
-        // Create a copy of the newRow without the isNew field
-        const bookWithoutIsNew = { ...newRow };
-        delete bookWithoutIsNew.isNew;
-        console.log(bookWithoutIsNew);
-
-        // Submit the form data for the new book
-        await fetch("http://localhost:8000/books/new", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(bookWithoutIsNew),
-        });
-
-        // Fetch the updated book list from the back-end and update the books state variable
-        const booksResponse = await fetch("http://localhost:8000/books");
-        if (!booksResponse.ok) {
-          throw new Error(`HTTP error! Status: ${booksResponse.status}`);
-        }
-        const updatedBooks = await booksResponse.json();
-        setBooks(updatedBooks);
-      }
-
-      // Reset the form after successful submission
-      setFormData({
-        title: "",
-        author: "",
-        genre: "",
-        length: 0,
-        read: false,
-      });
-    } catch (error) {
-      console.error("Error creating book:", error);
+    console.log(currentRow, newRow);
+    if (
+      areBooksEqual(currentRow as Book, newRow) &&
+      !currentRow?.readToggleChanged
+    ) {
+      return currentRow;
     }
 
-    return updatedRow;
+    if (currentRow?.isNew) {
+      // Create book with POST
+      const newBook: BookCreate = {
+        title: newRow.title,
+        author: newRow.author,
+        genre: newRow.genre,
+        length: newRow.length,
+        read: newRow.read,
+      };
+
+      return fetch("http://localhost:8000/books/new", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newBook),
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then((data: Book) => {
+          setRows((oldRows) => {
+            return oldRows.map((row) => {
+              if (row.id == newRow.id) {
+                return data;
+              }
+              return row;
+            });
+          });
+          return newRow;
+        })
+        .catch((error) => {
+          console.error(`Error creating book with id ${newRow.id}:`, error);
+        });
+    } else {
+      // Update book with PUT
+      console.log(`Updated Read value: ${newRow.read}.`);
+      return fetch("http://localhost:8000/books/update", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newRow),
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then((data) => {
+          return data;
+        })
+        .catch((error) => {
+          console.error(`Error updating book with id ${newRow.id}:`, error);
+        });
+    }
   };
 
-  const handleRowModesModelChange = (newRowModesModel) => {
+  const handleRowModesModelChange = (newRowModesModel: GridRowModesModel) => {
     setRowModesModel(newRowModesModel);
   };
 
-  const handleAddBookClick = () => {
-    const newId = rows.length > 0 ? rows[rows.length - 1].id + 1 : 1;
-    const newBook = { id: newId, isNew: true };
+  const handleReadToggle = (id: GridRowId, checked: boolean) => {
+    setRows((prevRows) => {
+      const updatedRows = prevRows.map((row) => {
+        if (row.id === id) {
+          return !row?.readToggleChanged
+            ? { ...row, read: checked, readToggleChanged: true }
+            : { ...row, read: checked, readToggleChanged: false };
+        }
+        return row;
+      });
+      return updatedRows;
+    });
+  };
 
-    setRows((oldRows) => [...oldRows, newBook]);
-    setRowModesModel((oldModel) => ({
-      ...oldModel,
-      [newId]: { mode: GridRowModes.Edit, fieldToFocus: "title" },
-    }));
+  const calculateAverageColumnWidth = (
+    totalWidth: number,
+    numColumns: number
+  ) => {
+    return totalWidth / numColumns;
   };
 
   const columns = [
     {
       field: "title",
       headerName: "Title",
+      width: calculateAverageColumnWidth(700, 7),
       type: "string",
-      width: 130,
-      align: "left",
+      align: "center",
       headerAlign: "center",
       editable: true,
     },
     {
       field: "author",
       headerName: "Author",
+      width: calculateAverageColumnWidth(700, 7),
       type: "string",
-      width: 130,
-      align: "left",
+      align: "center",
       headerAlign: "center",
       editable: true,
     },
     {
       field: "genre",
       headerName: "Genre",
-      width: 130,
-      align: "left",
+      width: calculateAverageColumnWidth(700, 7),
+      align: "center",
       headerAlign: "center",
       editable: true,
       type: "singleSelect",
@@ -248,27 +270,64 @@ export const BookTable: FC<BookTableProps> = ({ books, setBooks }) => {
     {
       field: "length",
       headerName: "Length",
+      width: calculateAverageColumnWidth(700, 7),
       type: "number",
-      width: 130,
-      align: "left",
+      align: "center",
       headerAlign: "center",
       editable: true,
+      valueParser: (value: string) => {
+        const parsedValue = parseFloat(value);
+        return isNaN(parsedValue) || parsedValue < 0 ? null : parsedValue;
+      },
+      valueFormatter: (params: { value: number | null }) => {
+        return params.value !== null ? params.value?.toString() : "";
+      },
+    },
+    {
+      field: "read",
+      headerName: "Read",
+      width: calculateAverageColumnWidth(700, 7),
+      type: "bool",
+      align: "center",
+      headerAlign: "center",
+      renderCell: (params: GridCellParams) => {
+        const isRowInEditMode =
+          rowModesModel[params.id as GridRowId]?.mode === GridRowModes.Edit;
+
+        return (
+          <Checkbox
+            checked={params.value as boolean}
+            onChange={(e) =>
+              handleReadToggle(params.id as GridRowId, e.target.checked)
+            }
+            disabled={!isRowInEditMode} // Disable checkbox if not in edit mode
+          />
+        );
+      },
     },
     {
       field: "date_added",
       headerName: "Date Added",
+      // width: calculateAverageColumnWidth(700, 7),
+      width: 150,
       type: "string",
-      width: 130,
-      align: "left",
+      align: "center",
       headerAlign: "center",
+      valueFormatter: (params: { value: string | null }) => {
+        if (params.value !== null) {
+          const dateObject = new Date(params?.value);
+          return dateObject.toLocaleDateString();
+        }
+        return "";
+      },
     },
     {
       field: "actions",
+      width: calculateAverageColumnWidth(700, 7),
       type: "actions",
       headerName: "Actions",
-      width: 115,
       cellClassName: "actions",
-      getActions: ({ id }) => {
+      getActions: ({ id }: { id: string }) => {
         const isInEditMode = rowModesModel[id]?.mode === GridRowModes.Edit;
 
         if (isInEditMode) {
@@ -312,7 +371,8 @@ export const BookTable: FC<BookTableProps> = ({ books, setBooks }) => {
   return (
     <Box
       sx={{
-        height: 500,
+        // height: 700,
+        height: "100%",
         width: "100%",
         "& .actions": {
           color: "text.secondary",
@@ -330,18 +390,10 @@ export const BookTable: FC<BookTableProps> = ({ books, setBooks }) => {
         onRowModesModelChange={handleRowModesModelChange}
         onRowEditStop={handleRowEditStop}
         processRowUpdate={processRowUpdate}
+        autoHeight
+        autowidth
         slots={{
-          toolbar: () => (
-            <GridToolbarContainer>
-              <Button
-                color="primary"
-                startIcon={<AddIcon />}
-                onClick={handleAddBookClick}
-              >
-                Add book
-              </Button>
-            </GridToolbarContainer>
-          ),
+          toolbar: EditToolbar,
         }}
         slotProps={{
           toolbar: { setRows, setRowModesModel },
