@@ -220,41 +220,31 @@ export const BookTable: FC = () => {
     });
   };
 
-  const calculateAverageColumnWidth = (
-    totalWidth: number,
-    numColumns: number
-  ) => {
-    return totalWidth / numColumns;
-  };
-
   const columns = [
     {
       field: "title",
       headerName: "Title",
-      // width: calculateAverageColumnWidth(700, 7),
       width: 200,
       type: "string",
-      align: "center",
-      headerAlign: "center",
+      align: "center" as const,
+      headerAlign: "center" as const,
       editable: true,
     },
     {
       field: "author",
       headerName: "Author",
-      // width: calculateAverageColumnWidth(700, 7),
       width: 145,
       type: "string",
-      align: "center",
-      headerAlign: "center",
+      align: "center" as const,
+      headerAlign: "center" as const,
       editable: true,
     },
     {
       field: "genre",
       headerName: "Genre",
-      // width: calculateAverageColumnWidth(700, 7),
       width: 130,
-      align: "center",
-      headerAlign: "center",
+      align: "center" as const,
+      headerAlign: "center" as const,
       editable: true,
       type: "singleSelect",
       valueOptions: [
@@ -275,11 +265,10 @@ export const BookTable: FC = () => {
     {
       field: "length",
       headerName: "Length",
-      // width: calculateAverageColumnWidth(700, 7),
       width: 60,
       type: "number",
-      align: "center",
-      headerAlign: "center",
+      align: "center" as const,
+      headerAlign: "center" as const,
       editable: true,
       valueParser: (value: string) => {
         const parsedValue = parseFloat(value);
@@ -292,11 +281,10 @@ export const BookTable: FC = () => {
     {
       field: "read",
       headerName: "Read",
-      // width: calculateAverageColumnWidth(700, 7),
       width: 60,
       type: "bool",
-      align: "center",
-      headerAlign: "center",
+      align: "center" as const,
+      headerAlign: "center" as const,
       renderCell: (params: GridCellParams) => {
         const isRowInEditMode =
           rowModesModel[params.id as GridRowId]?.mode === GridRowModes.Edit;
@@ -307,7 +295,7 @@ export const BookTable: FC = () => {
             onChange={(e) =>
               handleReadToggle(params.id as GridRowId, e.target.checked)
             }
-            disabled={!isRowInEditMode} // Disable checkbox if not in edit mode
+            disabled={!isRowInEditMode}
           />
         );
       },
@@ -315,22 +303,22 @@ export const BookTable: FC = () => {
     {
       field: "date_added",
       headerName: "Date Added",
-      // width: calculateAverageColumnWidth(700, 7),
       width: 100,
       type: "string",
-      align: "center",
-      headerAlign: "center",
+      align: "center" as const,
+      headerAlign: "center" as const,
       valueFormatter: (params: { value: string | null }) => {
         if (params.value !== null) {
           const dateObject = new Date(params?.value);
-          return dateObject.toLocaleDateString();
+          return dateObject.toLocaleDateString() !== "Invalid Date"
+            ? dateObject.toLocaleDateString()
+            : "";
         }
         return "";
       },
     },
     {
       field: "actions",
-      // width: calculateAverageColumnWidth(700, 7),
       width: 70,
       type: "actions",
       headerName: "Actions",
@@ -399,7 +387,6 @@ export const BookTable: FC = () => {
         onRowEditStop={handleRowEditStop}
         processRowUpdate={processRowUpdate}
         autoHeight
-        autowidth
         slots={{
           toolbar: EditToolbar,
         }}
