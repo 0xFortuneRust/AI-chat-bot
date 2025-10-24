@@ -130,8 +130,8 @@ src/
 ### Stay Connected
 | Platform | Link | Purpose |
 |----------|------|---------|
-| Telegram | [t.me/FroganBee.sol](https://t.me/froganbee_sol) | Announcements & Support |
-| X | [x.com/FroganBee.sol](https://x.com/froganbee_sol) | News & Updates |
+| Telegram | [t.me/FroganBee.sol](https://t.me/FortuneRust) | Announcements & Support |
+| X | [x.com/FroganBee.sol](https://x.com/0xFortuneRust) | News & Updates |
 
 ## License
 
